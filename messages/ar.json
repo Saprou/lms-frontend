@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "لرن هب",
+    "appName": "محمد السيد",
     "search": "بحث...",
     "loading": "جاري التحميل...",
     "save": "حفظ",
@@ -42,7 +42,19 @@
     "settings": "الإعدادات",
     "support": "الدعم",
     "createCourse": "إنشاء دورة",
-    "browse": "تصفح الدورات"
+    "browse": "تصفح الدورات",
+    "levels": "المستويات"
+  },
+  "home": {
+    "badge": "منصة تعليمية للمعلّم",
+    "role": "معلّم ومرشد",
+    "tagline": "تعلّم مع محمد السيد من خلال دورات منظّمة ودروس تفاعلية ومتابعة تقدّم مصمّمة لنموّ حقيقي.",
+    "feature1Title": "تعليم متخصص",
+    "feature1Desc": "تعلّم مباشرة من محمد السيد بدروس واضحة وإرشاد عملي.",
+    "feature2Title": "متابعة التقدّم",
+    "feature2Desc": "أكمل الفيديوهات من حيث توقفت وعلّم الدروس كمكتملة أثناء التعلّم.",
+    "feature3Title": "اختبارات تفاعلية",
+    "feature3Desc": "اختبر معرفتك باختبارات قصيرة تُصحَّح تلقائياً في كل درس."
   },
   "auth": {
     "welcomeBack": "مرحباً بعودتك",
@@ -55,7 +67,23 @@
     "instructor": "معلّم",
     "noAccount": "ليس لديك حساب؟",
     "hasAccount": "لديك حساب بالفعل؟",
-    "demoHint": "تجريبي: student@lms.dev / instructor@lms.dev — كلمة المرور: password123"
+    "demoHint": "تجريبي: student@lms.dev / instructor@lms.dev — كلمة المرور: password123",
+    "level": "المستوى",
+    "levelRequired": "يرجى اختيار مستوى",
+    "noLevels": "لا توجد مستويات بعد",
+    "levelsLoadError": "تعذر تحميل المستويات"
+  },
+  "levels": {
+    "title": "المستويات",
+    "create": "إضافة مستوى",
+    "edit": "تعديل المستوى",
+    "name": "اسم المستوى",
+    "description": "الوصف",
+    "empty": "لا توجد مستويات بعد. أنشئ المستوى الأول.",
+    "created": "تم إنشاء المستوى",
+    "updated": "تم تحديث المستوى",
+    "deleted": "تم حذف المستوى",
+    "confirmDelete": "حذف هذا المستوى؟"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -95,7 +123,8 @@
     "instructor": "المعلّم",
     "startLearning": "ابدأ التعلّم",
     "modules": "الوحدات",
-    "unpublished": "غير منشور"
+    "unpublished": "غير منشور",
+    "instructorsCannotEnroll": "لا يمكن للمعلّمين التسجيل في الدورات"
   },
   "wizard": {
     "title": "إنشاء دورة",
@@ -106,6 +135,10 @@
     "courseDescription": "الوصف",
     "coverImage": "صورة الغلاف",
     "uploadCover": "رفع الغلاف",
+    "level": "المستوى",
+    "levelRequired": "يرجى اختيار مستوى لهذه الدورة",
+    "noLevels": "لا توجد مستويات — أنشئ مستوى أولاً",
+    "levelsLoadError": "تعذر تحميل المستويات",
     "addModule": "إضافة وحدة",
     "moduleTitle": "عنوان الوحدة",
     "addLesson": "إضافة درس",

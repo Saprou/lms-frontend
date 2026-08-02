@@ -39,6 +39,10 @@ export function EnrollButton({ courseId, enrolled: initialEnrolled }: Props) {
     }
   }
 
+  if (user?.role === "INSTRUCTOR") {
+    return null;
+  }
+
   if (enrolled) {
     return (
       <button type="button" className="btn btn-secondary" disabled>

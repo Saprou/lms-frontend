@@ -25,6 +25,8 @@ type Props = {
   courseId: string;
   currentLessonId?: string;
   completedLessonIds?: string[];
+  /** When false, lesson rows are listed but not clickable */
+  canAccessLessons?: boolean;
 };
 
 function formatDuration(minutes: number) {
@@ -39,6 +41,7 @@ export function CourseContentAccordion({
   courseId,
   currentLessonId,
   completedLessonIds = [],
+  canAccessLessons = true,
 }: Props) {
   const t = useTranslations("courses");
   const locale = useLocale();
@@ -108,26 +111,41 @@ export function CourseContentAccordion({
                     const isActive = lesson.id === currentLessonId;
                     const isCompleted = completedLessonIds.includes(lesson.id);
 
+                    const rowClass = cn(
+                      "flex items-center gap-3 px-5 py-2.5 ps-12 text-sm",
+                      isActive && "bg-primary-soft text-primary font-medium",
+                      canAccessLessons
+                        ? "transition hover:bg-primary-soft/50"
+                        : "cursor-not-allowed text-muted"
+                    );
+
+                    const content = (
+                      <>
+                        <PlayCircle
+                          className={cn(
+                            "h-4 w-4 shrink-0",
+                            isCompleted ? "text-success" : "text-primary"
+                          )}
+                        />
+                        <span className="min-w-0 flex-1 truncate">{lesson.title}</span>
+                        <span className="shrink-0 text-xs text-muted">
+                          {formatDuration(lesson.durationMin)}
+                        </span>
+                      </>
+                    );
+
                     return (
                       <li key={lesson.id}>
-                        <Link
-                          href={`/${locale}/courses/${courseId}/lessons/${lesson.id}`}
-                          className={cn(
-                            "flex items-center gap-3 px-5 py-2.5 ps-12 text-sm transition hover:bg-primary-soft/50",
-                            isActive && "bg-primary-soft text-primary font-medium"
-                          )}
-                        >
-                          <PlayCircle
-                            className={cn(
-                              "h-4 w-4 shrink-0",
-                              isCompleted ? "text-success" : "text-primary"
-                            )}
-                          />
-                          <span className="min-w-0 flex-1 truncate">{lesson.title}</span>
-                          <span className="shrink-0 text-xs text-muted">
-                            {formatDuration(lesson.durationMin)}
-                          </span>
-                        </Link>
+                        {canAccessLessons ? (
+                          <Link
+                            href={`/${locale}/courses/${courseId}/lessons/${lesson.id}`}
+                            className={rowClass}
+                          >
+                            {content}
+                          </Link>
+                        ) : (
+                          <div className={rowClass}>{content}</div>
+                        )}
                       </li>
                     );
                   })}

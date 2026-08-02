@@ -15,14 +15,25 @@ import {
   Plus,
   Bell,
   GraduationCap,
+  Layers,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
 import { useAuth } from "@/components/providers/auth-provider";
 
-const links = [
+const studentLinks = [
   { href: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
   { href: "/courses", icon: BookOpen, key: "courses" },
+  { href: "/exams", icon: ClipboardList, key: "exams" },
+  { href: "/calendar", icon: CalendarDays, key: "calendar" },
+  { href: "/messages", icon: MessagesSquare, key: "messages" },
+  { href: "/community", icon: UsersRound, key: "community" },
+] as const;
+
+const instructorLinks = [
+  { href: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
+  { href: "/courses", icon: BookOpen, key: "courses" },
+  { href: "/levels", icon: Layers, key: "levels" },
   { href: "/exams", icon: ClipboardList, key: "exams" },
   { href: "/calendar", icon: CalendarDays, key: "calendar" },
   { href: "/messages", icon: MessagesSquare, key: "messages" },
@@ -43,6 +54,7 @@ export function AppShell({
   const router = useRouter();
   const { user, logout } = useAuth();
   const role = user?.role;
+  const links = role === "INSTRUCTOR" ? instructorLinks : studentLinks;
 
   function handleLogout() {
     logout();
@@ -117,7 +129,11 @@ export function AppShell({
               </div>
               <div className="hidden min-w-0 flex-1 lg:block">
                 <p className="truncate text-sm font-semibold">{user.name}</p>
-                <p className="truncate text-xs text-muted">{user.role}</p>
+                <p className="truncate text-xs text-muted">
+                  {user.level?.name
+                    ? `${user.role} · ${user.level.name}`
+                    : user.role}
+                </p>
               </div>
               <button
                 type="button"

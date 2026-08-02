@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "LearnHub",
+    "appName": "Mohamed Elsayed",
     "search": "Search...",
     "loading": "Loading...",
     "save": "Save",
@@ -42,7 +42,19 @@
     "settings": "Settings",
     "support": "Support",
     "createCourse": "Create course",
-    "browse": "Browse courses"
+    "browse": "Browse courses",
+    "levels": "Levels"
+  },
+  "home": {
+    "badge": "Instructor learning platform",
+    "role": "Instructor & mentor",
+    "tagline": "Learn with Mohamed Elsayed through structured courses, interactive lessons, and progress tracking built for real growth.",
+    "feature1Title": "Expert instruction",
+    "feature1Desc": "Learn directly from Mohamed Elsayed with clear lessons and practical guidance.",
+    "feature2Title": "Track progress",
+    "feature2Desc": "Resume videos where you left off and mark lessons complete as you go.",
+    "feature3Title": "Interactive quizzes",
+    "feature3Desc": "Test your knowledge with auto-graded quizzes in every lesson."
   },
   "auth": {
     "welcomeBack": "Welcome back",
@@ -55,7 +67,23 @@
     "instructor": "Instructor",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
-    "demoHint": "Demo: student@lms.dev / instructor@lms.dev — password: password123"
+    "demoHint": "Demo: student@lms.dev / instructor@lms.dev — password: password123",
+    "level": "Level",
+    "levelRequired": "Please choose a level",
+    "noLevels": "No levels available yet",
+    "levelsLoadError": "Could not load levels"
+  },
+  "levels": {
+    "title": "Levels",
+    "create": "Add level",
+    "edit": "Edit level",
+    "name": "Level name",
+    "description": "Description",
+    "empty": "No levels yet. Create the first one.",
+    "created": "Level created",
+    "updated": "Level updated",
+    "deleted": "Level deleted",
+    "confirmDelete": "Delete this level?"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -95,7 +123,8 @@
     "instructor": "Instructor",
     "startLearning": "Start learning",
     "modules": "Modules",
-    "unpublished": "Unpublished"
+    "unpublished": "Unpublished",
+    "instructorsCannotEnroll": "Instructors cannot enroll"
   },
   "wizard": {
     "title": "Create a course",
@@ -106,6 +135,10 @@
     "courseDescription": "Description",
     "coverImage": "Cover image",
     "uploadCover": "Upload cover",
+    "level": "Level",
+    "levelRequired": "Please select a level for this course",
+    "noLevels": "No levels available — create one first",
+    "levelsLoadError": "Could not load levels",
     "addModule": "Add module",
     "moduleTitle": "Module title",
     "addLesson": "Add lesson",

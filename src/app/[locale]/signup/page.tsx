@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -8,8 +8,13 @@ import { GraduationCap } from "lucide-react";
 import toast from "react-hot-toast";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { useAuth } from "@/components/providers/auth-provider";
+import { API_URL } from "@/lib/api-client";
 
-type Role = "STUDENT" | "INSTRUCTOR";
+type Level = {
+  id: string;
+  name: string;
+  description: string | null;
+};
 
 export default function SignupPage() {
   const t = useTranslations("auth");
@@ -20,15 +25,33 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("STUDENT");
+  const [levelId, setLevelId] = useState("");
+  const [levels, setLevels] = useState<Level[]>([]);
+  const [levelsLoading, setLevelsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/levels`)
+      .then((r) => r.json())
+      .then((d) => {
+        const list = (d.levels ?? []) as Level[];
+        setLevels(list);
+        if (list[0]) setLevelId(list[0].id);
+      })
+      .catch(() => toast.error(t("levelsLoadError")))
+      .finally(() => setLevelsLoading(false));
+  }, [t]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!levelId) {
+      toast.error(t("levelRequired"));
+      return;
+    }
     setLoading(true);
 
     try {
-      await signup({ name, email, password, role });
+      await signup({ name, email, password, levelId });
       router.push(`/${locale}/dashboard`);
       router.refresh();
     } catch (err) {
@@ -99,23 +122,37 @@ export default function SignupPage() {
               />
             </div>
             <div>
-              <label htmlFor="role" className="label">
-                {t("role")}
+              <label htmlFor="level" className="label">
+                {t("level")}
               </label>
               <select
-                id="role"
+                id="level"
                 className="input"
-                value={role}
-                onChange={(e) => setRole(e.target.value as Role)}
+                value={levelId}
+                onChange={(e) => setLevelId(e.target.value)}
+                required
+                disabled={levelsLoading || levels.length === 0}
               >
-                <option value="STUDENT">{t("student")}</option>
-                <option value="INSTRUCTOR">{t("instructor")}</option>
+                {levelsLoading && <option value="">{tc("loading")}</option>}
+                {!levelsLoading && levels.length === 0 && (
+                  <option value="">{t("noLevels")}</option>
+                )}
+                {levels.map((level) => (
+                  <option key={level.id} value={level.id}>
+                    {level.name}
+                  </option>
+                ))}
               </select>
+              {levelId && levels.find((l) => l.id === levelId)?.description && (
+                <p className="mt-1.5 text-xs text-muted">
+                  {levels.find((l) => l.id === levelId)?.description}
+                </p>
+              )}
             </div>
             <button
               type="submit"
               className="btn btn-primary w-full"
-              disabled={loading}
+              disabled={loading || !levelId || levels.length === 0}
             >
               {loading ? tc("loading") : tc("signup")}
             </button>

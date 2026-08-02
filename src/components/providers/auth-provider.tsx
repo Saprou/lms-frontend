@@ -25,7 +25,7 @@ type AuthContextValue = {
     name: string;
     email: string;
     password: string;
-    role: "STUDENT" | "INSTRUCTOR";
+    levelId: string;
   }) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: string;
       email: string;
       password: string;
-      role: "STUDENT" | "INSTRUCTOR";
+      levelId: string;
     }) => {
       const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: "POST",

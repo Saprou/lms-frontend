@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Plus, Trash2, Upload, ChevronLeft } from "lucide-react";
@@ -10,6 +10,12 @@ import { AppShell } from "@/components/layout/app-shell";
 import { cn } from "@/lib/utils";
 
 type BlockType = "VIDEO" | "IMAGE" | "TEXT";
+
+type LevelOption = {
+  id: string;
+  name: string;
+  description: string | null;
+};
 
 type BlockDraft = {
   type: BlockType;
@@ -59,12 +65,24 @@ export default function NewCoursePage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [levelId, setLevelId] = useState("");
+  const [levels, setLevels] = useState<LevelOption[]>([]);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
   const [modules, setModules] = useState<ModuleDraft[]>([
     { id: "module-1", title: "", lessons: [] },
   ]);
+
+  useEffect(() => {
+    clientApi<{ levels: LevelOption[] }>("/api/levels")
+      .then((data) => {
+        const list = data.levels ?? [];
+        setLevels(list);
+        if (list[0]) setLevelId(list[0].id);
+      })
+      .catch(() => toast.error(t("levelsLoadError")));
+  }, [t]);
 
   const steps = [
     { num: 1, label: t("stepBasics") },
@@ -215,6 +233,10 @@ export default function NewCoursePage() {
       toast.error("Title and description (min 10 chars) are required");
       return;
     }
+    if (!levelId) {
+      toast.error(t("levelRequired"));
+      return;
+    }
 
     setLoading(true);
     try {
@@ -229,6 +251,7 @@ export default function NewCoursePage() {
           title,
           description,
           coverUrl: finalCoverUrl,
+          levelId,
           published: false,
         },
       });
@@ -343,6 +366,33 @@ export default function NewCoursePage() {
               />
             </div>
             <div>
+              <label className="label" htmlFor="course-level">
+                {t("level")}
+              </label>
+              <select
+                id="course-level"
+                className="input"
+                value={levelId}
+                onChange={(e) => setLevelId(e.target.value)}
+                required
+                disabled={levels.length === 0}
+              >
+                {levels.length === 0 && (
+                  <option value="">{t("noLevels")}</option>
+                )}
+                {levels.map((level) => (
+                  <option key={level.id} value={level.id}>
+                    {level.name}
+                  </option>
+                ))}
+              </select>
+              {levelId && levels.find((l) => l.id === levelId)?.description && (
+                <p className="mt-1.5 text-xs text-muted">
+                  {levels.find((l) => l.id === levelId)?.description}
+                </p>
+              )}
+            </div>
+            <div>
               <label className="label">{t("coverImage")}</label>
               <div className="flex items-center gap-4">
                 {coverUrl && (
@@ -368,7 +418,14 @@ export default function NewCoursePage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  if (!levelId) {
+                    toast.error(t("levelRequired"));
+                    return;
+                  }
+                  setStep(2);
+                }}
+                disabled={!levelId}
               >
                 {tc("next")}
               </button>

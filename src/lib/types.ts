@@ -4,4 +4,6 @@ export type AuthUser = {
   email: string;
   role: "INSTRUCTOR" | "STUDENT";
   image: string | null;
+  levelId?: string | null;
+  level?: { id: string; name: string } | null;
 };

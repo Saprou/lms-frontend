@@ -12,6 +12,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { EnrollButton } from "@/components/courses/enroll-button";
 import { CourseContentAccordion } from "@/components/courses/course-content-accordion";
+import { requireUser, getServerUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api-server";
 import { initials } from "@/lib/utils";
 
@@ -25,25 +26,12 @@ function formatDuration(totalMin: number) {
   return { hours, minutes };
 }
 
-function findPreviewVideo(
-  modules: {
-    lessons: { blocks: { type: string; mediaUrl: string | null }[] }[];
-  }[]
-) {
-  for (const mod of modules) {
-    for (const lesson of mod.lessons) {
-      const video = lesson.blocks.find(
-        (b) => b.type === "VIDEO" && b.mediaUrl
-      );
-      if (video?.mediaUrl) return video.mediaUrl;
-    }
-  }
-  return null;
-}
-
 export default async function CourseDetailPage({ params }: Props) {
   const { locale, courseId } = await params;
   setRequestLocale(locale);
+
+  await requireUser(locale);
+  const user = await getServerUser();
 
   const t = await getTranslations("courses");
   const tc = await getTranslations("common");
@@ -58,7 +46,9 @@ export default async function CourseDetailPage({ params }: Props) {
         coverUrl: string | null;
         published: boolean;
         instructorId: string;
+        canAccessContent?: boolean;
         instructor: { id: string; name: string; image: string | null; bio: string | null };
+        level?: { id: string; name: string } | null;
         modules: {
           id: string;
           title: string;
@@ -80,6 +70,11 @@ export default async function CourseDetailPage({ params }: Props) {
   }
 
   const enrolled = Array.isArray(course.enrollments) && course.enrollments.length > 0;
+  const isCourseInstructor = user?.id === course.instructorId;
+  const isInstructorRole = user?.role === "INSTRUCTOR";
+  const canAccessContent = Boolean(
+    (course.canAccessContent ?? enrolled) || isCourseInstructor
+  );
   const lessonCount = course.modules.reduce(
     (sum, m) => sum + m.lessons.length,
     0
@@ -89,7 +84,6 @@ export default async function CourseDetailPage({ params }: Props) {
     0
   );
   const { hours, minutes } = formatDuration(totalMin);
-  const previewVideo = findPreviewVideo(course.modules);
 
   const firstLesson = course.modules[0]?.lessons[0];
 
@@ -118,9 +112,16 @@ export default async function CourseDetailPage({ params }: Props) {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div>
-            <span className="inline-block rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
-              {t("modules")} · {course.modules.length}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-block rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
+                {t("modules")} · {course.modules.length}
+              </span>
+              {course.level && (
+                <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-foreground">
+                  {course.level.name}
+                </span>
+              )}
+            </div>
             <h1 className="mt-3 text-3xl font-bold tracking-tight">{course.title}</h1>
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted">
               <span className="flex items-center gap-1.5">
@@ -140,7 +141,7 @@ export default async function CourseDetailPage({ params }: Props) {
               <Share2 className="h-4 w-4" />
               {tc("share")}
             </button>
-            {enrolled && firstLesson ? (
+            {isCourseInstructor && firstLesson ? (
               <Link
                 href={`/${locale}/courses/${courseId}/lessons/${firstLesson.id}`}
                 className="btn btn-primary"
@@ -148,28 +149,43 @@ export default async function CourseDetailPage({ params }: Props) {
                 <Play className="h-4 w-4" />
                 {t("startLearning")}
               </Link>
+            ) : enrolled && firstLesson ? (
+              <Link
+                href={`/${locale}/courses/${courseId}/lessons/${firstLesson.id}`}
+                className="btn btn-primary"
+              >
+                <Play className="h-4 w-4" />
+                {t("startLearning")}
+              </Link>
+            ) : isInstructorRole ? (
+              <button type="button" className="btn btn-secondary" disabled>
+                {t("instructorsCannotEnroll")}
+              </button>
             ) : (
               <EnrollButton courseId={courseId} enrolled={enrolled} />
             )}
           </div>
 
           <div className="overflow-hidden rounded-2xl bg-black">
-            {previewVideo ? (
-              <video
-                src={previewVideo}
-                controls
-                className="aspect-video w-full"
-                poster={course.coverUrl || undefined}
-              />
-            ) : course.coverUrl ? (
+            {course.coverUrl ? (
               <div className="relative aspect-video">
                 <Image
                   src={course.coverUrl}
                   alt={course.title}
                   fill
                   className="object-cover"
-                  unoptimized={course.coverUrl.startsWith("/uploads")}
+                  unoptimized={
+                    course.coverUrl.startsWith("/uploads") ||
+                    course.coverUrl.includes("localhost")
+                  }
                 />
+                {!canAccessContent && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/45">
+                    <p className="rounded-full bg-white/95 px-4 py-2 text-sm font-semibold text-foreground">
+                      {tc("enroll")}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex aspect-video items-center justify-center bg-primary-soft">
@@ -199,6 +215,7 @@ export default async function CourseDetailPage({ params }: Props) {
           <CourseContentAccordion
             modules={accordionModules}
             courseId={courseId}
+            canAccessLessons={canAccessContent}
           />
 
           <div className="card p-5">

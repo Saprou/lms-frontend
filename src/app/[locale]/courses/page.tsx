@@ -15,6 +15,7 @@ type CourseListItem = {
   title: string;
   coverUrl: string | null;
   instructor: { id: string; name: string; image: string | null };
+  level?: { id: string; name: string } | null;
   _count: { enrollments: number };
 };
 
@@ -61,6 +62,11 @@ export default async function CoursesPage({ params }: Props) {
                 )}
               </div>
               <div className="p-5">
+                {course.level && (
+                  <span className="mb-2 inline-block rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-semibold text-primary">
+                    {course.level.name}
+                  </span>
+                )}
                 <h2 className="font-bold group-hover:text-primary">{course.title}</h2>
                 <div className="mt-3 flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
