@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# next.js
+.next/
+out/
+.vercel
+
+# build / typescript
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# local uploads
+public/uploads/**
+!public/uploads/.gitkeep
+
+# logs / misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.DS_Store
+*.pem
+.idea/
+.vscode/
