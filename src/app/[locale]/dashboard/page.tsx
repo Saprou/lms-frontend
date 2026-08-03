@@ -29,7 +29,8 @@ type InstructorDashboard = {
   upcomingExams: {
     id: string;
     title: string;
-    course: { title: string };
+    course: { title: string } | null;
+    level: { name: string } | null;
   }[];
   recentMessages: {
     id: string;
@@ -61,7 +62,8 @@ type StudentDashboard = {
   upcomingExams: {
     id: string;
     title: string;
-    course: { title: string };
+    course: { title: string } | null;
+    level: { name: string } | null;
   }[];
   recentMessages: {
     id: string;
@@ -168,7 +170,10 @@ export default async function DashboardPage({ params }: Props) {
                     <Link href={`/${locale}/exams/${e.id}`} className="hover:text-primary">
                       {e.title}
                     </Link>
-                    <span className="text-muted"> · {e.course.title}</span>
+                    <span className="text-muted">
+                      {" "}
+                      · {[e.level?.name, e.course?.title].filter(Boolean).join(" · ")}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -302,7 +307,9 @@ export default async function DashboardPage({ params }: Props) {
                   <Link href={`/${locale}/exams/${e.id}`} className="font-medium hover:text-primary">
                     {e.title}
                   </Link>
-                  <p className="text-xs text-muted">{e.course.title}</p>
+                  <p className="text-xs text-muted">
+                    {[e.level?.name, e.course?.title].filter(Boolean).join(" · ")}
+                  </p>
                 </li>
               ))}
             </ul>

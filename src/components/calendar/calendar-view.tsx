@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Plus, CalendarDays } from "lucide-react";
 import toast from "react-hot-toast";
+import { Pagination, type PaginationMeta } from "@/components/ui/pagination";
 import { clientApi } from "@/lib/api-client";
 
 type Event = {
@@ -16,12 +17,22 @@ type Event = {
   createdBy: { id: string; name: string };
 };
 
+const emptyPagination: PaginationMeta = {
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 1,
+  hasMore: false,
+};
+
 export function CalendarView({ initialEvents }: { initialEvents?: Event[] }) {
   const t = useTranslations("calendar");
   const tc = useTranslations("common");
   const locale = useLocale();
 
   const [events, setEvents] = useState<Event[]>(initialEvents ?? []);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationMeta>(emptyPagination);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(!initialEvents);
   const [creating, setCreating] = useState(false);
@@ -36,25 +47,29 @@ export function CalendarView({ initialEvents }: { initialEvents?: Event[] }) {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (initialEvents) return;
-    clientApi<{ events: Event[] }>("/api/calendar")
-      .then((data) => setEvents(data.events ?? []))
-      .catch(() => undefined)
-      .finally(() => setLoading(false));
-  }, [initialEvents]);
-
-  const { upcoming, past } = useMemo(() => {
-    // Stable split during SSR/hydration; refine after mount
-    if (!mounted) {
-      return { upcoming: events, past: [] as Event[] };
+  const loadEvents = useCallback(async (currentPage: number) => {
+    setLoading(true);
+    try {
+      const data = await clientApi<{
+        events: Event[];
+        pagination: PaginationMeta;
+      }>(`/api/calendar?page=${currentPage}&limit=20`);
+      setEvents(data.events ?? []);
+      setPagination(data.pagination ?? emptyPagination);
+    } catch {
+      /* silent */
+    } finally {
+      setLoading(false);
     }
-    const now = Date.now();
-    return {
-      upcoming: events.filter((e) => new Date(e.endsAt).getTime() >= now),
-      past: events.filter((e) => new Date(e.endsAt).getTime() < now),
-    };
-  }, [events, mounted]);
+  }, []);
+
+  useEffect(() => {
+    if (initialEvents && page === 1) {
+      setLoading(false);
+      return;
+    }
+    loadEvents(page);
+  }, [initialEvents, page, loadEvents]);
 
   function formatDate(iso: string) {
     if (!mounted) return iso.slice(0, 16).replace("T", " ");
@@ -68,7 +83,7 @@ export function CalendarView({ initialEvents }: { initialEvents?: Event[] }) {
     e.preventDefault();
     setCreating(true);
     try {
-      const data = await clientApi<{ event: Event }>("/api/calendar", {
+      await clientApi<{ event: Event }>("/api/calendar", {
         method: "POST",
         json: {
           title,
@@ -77,17 +92,14 @@ export function CalendarView({ initialEvents }: { initialEvents?: Event[] }) {
           endsAt: new Date(endsAt).toISOString(),
         },
       });
-      setEvents((prev) =>
-        [...prev, data.event].sort(
-          (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()
-        )
-      );
       toast.success(t("create"));
       setShowForm(false);
       setTitle("");
       setDescription("");
       setStartsAt("");
       setEndsAt("");
+      if (page === 1) await loadEvents(1);
+      else setPage(1);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -173,43 +185,33 @@ export function CalendarView({ initialEvents }: { initialEvents?: Event[] }) {
           <CalendarDays className="h-5 w-5 text-primary" />
           {t("upcoming")}
         </h2>
-        {upcoming.length === 0 ? (
+        {events.length === 0 ? (
           <div className="card p-8 text-center text-muted">{t("noEvents")}</div>
         ) : (
-          <div className="space-y-3">
-            {upcoming.map((ev) => (
-              <div key={ev.id} className="card p-5">
-                <h3 className="font-bold">{ev.title}</h3>
-                {ev.description && (
-                  <p className="mt-1 text-sm text-muted">{ev.description}</p>
-                )}
-                <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted">
-                  <span>
-                    {t("startsAt")}: {formatDate(ev.startsAt)}
-                  </span>
-                  <span>
-                    {t("endsAt")}: {formatDate(ev.endsAt)}
-                  </span>
-                  {ev.course && <span>{ev.course.title}</span>}
+          <>
+            <div className="space-y-3">
+              {events.map((ev) => (
+                <div key={ev.id} className="card p-5">
+                  <h3 className="font-bold">{ev.title}</h3>
+                  {ev.description && (
+                    <p className="mt-1 text-sm text-muted">{ev.description}</p>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted">
+                    <span>
+                      {t("startsAt")}: {formatDate(ev.startsAt)}
+                    </span>
+                    <span>
+                      {t("endsAt")}: {formatDate(ev.endsAt)}
+                    </span>
+                    {ev.course && <span>{ev.course.title}</span>}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            <Pagination pagination={pagination} onPageChange={setPage} />
+          </>
         )}
       </section>
-
-      {past.length > 0 && (
-        <section>
-          <h2 className="mb-4 text-sm font-semibold text-muted">Past events</h2>
-          <div className="space-y-2 opacity-70">
-            {past.slice(0, 5).map((ev) => (
-              <div key={ev.id} className="rounded-lg border border-border px-4 py-3 text-sm">
-                {ev.title} · {formatDate(ev.startsAt)}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

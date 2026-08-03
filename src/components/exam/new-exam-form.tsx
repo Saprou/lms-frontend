@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { clientApi } from "@/lib/api-client";
 
-type Course = { id: string; title: string };
+type Level = { id: string; name: string; description?: string | null };
+type Course = { id: string; title: string; levelId?: string | null };
 
 type McqOption = { text: string; isCorrect: boolean };
 type QuestionDraft = {
@@ -33,14 +34,21 @@ function emptyMcqOptions(): McqOption[] {
   ];
 }
 
-export function NewExamForm({ courses }: { courses: Course[] }) {
+export function NewExamForm({
+  levels,
+  courses,
+}: {
+  levels: Level[];
+  courses: Course[];
+}) {
   const t = useTranslations("exam");
   const tc = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [courseId, setCourseId] = useState(courses[0]?.id ?? "");
+  const [levelId, setLevelId] = useState(levels[0]?.id ?? "");
+  const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [passage, setPassage] = useState("");
@@ -56,6 +64,14 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
       options: emptyMcqOptions(),
     },
   ]);
+
+  const coursesForLevel = useMemo(
+    () =>
+      courses.filter(
+        (c) => !levelId || !c.levelId || c.levelId === levelId
+      ),
+    [courses, levelId]
+  );
 
   function addQuestion(type: "MCQ" | "SHORT_ANSWER") {
     setQuestions((prev) => [
@@ -104,14 +120,19 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!courseId || !title.trim()) {
-      toast.error("Course and title are required");
+    if (!levelId) {
+      toast.error(t("levelRequired"));
+      return;
+    }
+    if (!title.trim()) {
+      toast.error(t("titleRequired"));
       return;
     }
     setLoading(true);
     try {
       const payload = {
-        courseId,
+        levelId,
+        courseId: courseId || null,
         title: title.trim(),
         description: description.trim() || undefined,
         passage: passage.trim() || undefined,
@@ -139,11 +160,9 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
     }
   }
 
-  if (courses.length === 0) {
+  if (levels.length === 0) {
     return (
-      <div className="card p-8 text-center text-muted">
-        Create a course first before adding exams.
-      </div>
+      <div className="card p-8 text-center text-muted">{t("noLevels")}</div>
     );
   }
 
@@ -151,31 +170,57 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
       <div className="card space-y-4 p-6">
         <div>
-          <label className="label">Course</label>
+          <label className="label" htmlFor="exam-level">
+            {t("level")}
+          </label>
           <select
+            id="exam-level"
             className="input"
-            value={courseId}
-            onChange={(e) => setCourseId(e.target.value)}
+            value={levelId}
+            onChange={(e) => {
+              setLevelId(e.target.value);
+              setCourseId("");
+            }}
             required
           >
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
+            {levels.map((level) => (
+              <option key={level.id} value={level.id}>
+                {level.name}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="label">Title</label>
+          <label className="label" htmlFor="exam-course">
+            {t("courseOptional")}
+          </label>
+          <select
+            id="exam-course"
+            className="input"
+            value={courseId}
+            onChange={(e) => setCourseId(e.target.value)}
+          >
+            <option value="">{t("noCourse")}</option>
+            {coursesForLevel.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-xs text-muted">{t("courseOptionalHint")}</p>
+        </div>
+        <div>
+          <label className="label">{t("examTitle")}</label>
           <input
             className="input"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+            placeholder={t("examTitle")}
           />
         </div>
         <div>
-          <label className="label">Description</label>
+          <label className="label">{t("description")}</label>
           <textarea
             className="input min-h-[80px]"
             value={description}
@@ -193,7 +238,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <label className="label">Duration (min)</label>
+            <label className="label">{t("durationLabel")}</label>
             <input
               type="number"
               min={1}
@@ -204,7 +249,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
             />
           </div>
           <div>
-            <label className="label">{t("startsAt", { date: "" })}</label>
+            <label className="label">{t("startsAt")}</label>
             <input
               type="datetime-local"
               className="input"
@@ -213,7 +258,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
             />
           </div>
           <div>
-            <label className="label">{t("closesAt", { date: "" })}</label>
+            <label className="label">{t("endsAt")}</label>
             <input
               type="datetime-local"
               className="input"
@@ -226,7 +271,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Questions</h2>
+          <h2 className="text-lg font-bold">{t("questions")}</h2>
           <div className="flex gap-2">
             <button
               type="button"
@@ -263,7 +308,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
             </div>
             <textarea
               className="input min-h-[70px]"
-              placeholder="Question prompt"
+              placeholder={t("questionPrompt")}
               value={q.prompt}
               onChange={(e) => updateQuestion(q.id, { prompt: e.target.value })}
               required
@@ -279,7 +324,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
                   })
                 }
               >
-                <option value="MCQ">Multiple choice</option>
+                <option value="MCQ">{t("multipleChoice")}</option>
                 <option value="SHORT_ANSWER">{t("shortAnswer")}</option>
               </select>
               <input
@@ -306,7 +351,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
                     />
                     <input
                       className="input"
-                      placeholder={`Option ${oi + 1}`}
+                      placeholder={`${t("option")} ${oi + 1}`}
                       value={opt.text}
                       onChange={(e) =>
                         updateOption(q.id, oi, { text: e.target.value })
@@ -322,7 +367,7 @@ export function NewExamForm({ courses }: { courses: Course[] }) {
       </div>
 
       <div className="flex gap-3">
-        <button type="submit" className="btn btn-primary" disabled={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading || !levelId}>
           {loading ? tc("loading") : tc("create")}
         </button>
         <button type="button" className="btn btn-secondary" onClick={() => router.back()}>

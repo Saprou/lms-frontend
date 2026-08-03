@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
@@ -13,12 +14,13 @@ import {
   Settings,
   LogOut,
   Plus,
-  Bell,
   GraduationCap,
   Layers,
+  UserCheck,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
+import { NotificationsBell } from "./notifications-bell";
 import { useAuth } from "@/components/providers/auth-provider";
 
 const studentLinks = [
@@ -34,6 +36,7 @@ const instructorLinks = [
   { href: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
   { href: "/courses", icon: BookOpen, key: "courses" },
   { href: "/levels", icon: Layers, key: "levels" },
+  { href: "/students", icon: UserCheck, key: "students" },
   { href: "/exams", icon: ClipboardList, key: "exams" },
   { href: "/calendar", icon: CalendarDays, key: "calendar" },
   { href: "/messages", icon: MessagesSquare, key: "messages" },
@@ -52,9 +55,20 @@ export function AppShell({
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const role = user?.role;
   const links = role === "INSTRUCTOR" ? instructorLinks : studentLinks;
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (user?.role === "STUDENT" && user.blocked) {
+      router.replace(`/${locale}/blocked`);
+      return;
+    }
+    if (user?.role === "STUDENT" && !user.approved) {
+      router.replace(`/${locale}/pending`);
+    }
+  }, [authLoading, user, locale, router]);
 
   function handleLogout() {
     logout();
@@ -131,7 +145,7 @@ export function AppShell({
                 <p className="truncate text-sm font-semibold">{user.name}</p>
                 <p className="truncate text-xs text-muted">
                   {user.level?.name
-                    ? `${user.role} · ${user.level.name}`
+                    ? ` ${user.level.name}`
                     : user.role}
                 </p>
               </div>
@@ -159,13 +173,7 @@ export function AppShell({
           </div>
           <div className="flex items-center gap-3">
             <LocaleSwitcher />
-            <button
-              type="button"
-              className="relative rounded-full border border-border bg-white p-2 text-muted"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute end-1 top-1 h-2 w-2 rounded-full bg-danger" />
-            </button>
+            <NotificationsBell />
           </div>
         </header>
         <main className="flex-1 p-4 md:p-8">{children}</main>

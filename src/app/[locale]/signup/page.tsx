@@ -24,6 +24,7 @@ export default function SignupPage() {
   const { signup } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [levelId, setLevelId] = useState("");
   const [levels, setLevels] = useState<Level[]>([]);
@@ -51,8 +52,9 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await signup({ name, email, password, levelId });
-      router.push(`/${locale}/dashboard`);
+      await signup({ name, email, phone, password, levelId });
+      toast.success(t("pendingApprovalToast"));
+      router.push(`/${locale}/pending`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Signup failed");
@@ -104,6 +106,21 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+              />
+            </div>
+            <div>
+              <label htmlFor="phone" className="label">
+                {t("phone")}
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                className="input"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                autoComplete="tel"
+                placeholder={t("phonePlaceholder")}
               />
             </div>
             <div>

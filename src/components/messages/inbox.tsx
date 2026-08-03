@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Send, Plus } from "lucide-react";
 import toast from "react-hot-toast";
+import { Pagination, type PaginationMeta } from "@/components/ui/pagination";
 import { clientApi } from "@/lib/api-client";
 import { useAuth } from "@/components/providers/auth-provider";
 import { cn, initials } from "@/lib/utils";
@@ -22,14 +23,28 @@ type Conversation = {
   lastMessage: Message | null;
 };
 
+const emptyPagination: PaginationMeta = {
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 1,
+  hasMore: false,
+};
+
 export function Inbox() {
   const t = useTranslations("messages");
   const tc = useTranslations("common");
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [convPage, setConvPage] = useState(1);
+  const [convPagination, setConvPagination] =
+    useState<PaginationMeta>(emptyPagination);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [msgPage, setMsgPage] = useState(1);
+  const [msgPagination, setMsgPagination] =
+    useState<PaginationMeta>(emptyPagination);
   const [compose, setCompose] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -38,10 +53,14 @@ export function Inbox() {
   const [newBody, setNewBody] = useState("");
   const [users, setUsers] = useState<User[]>([]);
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (page: number) => {
     try {
-      const data = await clientApi<{ conversations: Conversation[] }>("/api/messages");
+      const data = await clientApi<{
+        conversations: Conversation[];
+        pagination: PaginationMeta;
+      }>(`/api/messages?page=${page}&limit=20`);
       setConversations(data.conversations ?? []);
+      setConvPagination(data.pagination ?? emptyPagination);
     } catch {
       /* silent */
     } finally {
@@ -50,27 +69,36 @@ export function Inbox() {
   }, []);
 
   useEffect(() => {
-    clientApi<{ users: User[] }>("/api/users")
+    clientApi<{ users: User[] }>("/api/users?page=1&limit=100")
       .then((d) => setUsers(d.users ?? []))
       .catch(() => undefined);
   }, []);
 
-  const loadThread = useCallback(async (id: string) => {
+  const loadThread = useCallback(async (id: string, page: number) => {
     try {
-      const data = await clientApi<{ messages: Message[] }>(`/api/messages/${id}`);
+      const data = await clientApi<{
+        messages: Message[];
+        pagination: PaginationMeta;
+      }>(`/api/messages/${id}?page=${page}&limit=50`);
       setMessages(data.messages ?? []);
+      setMsgPagination(data.pagination ?? emptyPagination);
     } catch {
       /* silent */
     }
   }, []);
 
   useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+    loadConversations(convPage);
+  }, [loadConversations, convPage]);
 
   useEffect(() => {
-    if (selectedId) loadThread(selectedId);
-  }, [selectedId, loadThread]);
+    if (selectedId) loadThread(selectedId, msgPage);
+  }, [selectedId, msgPage, loadThread]);
+
+  function selectConversation(id: string) {
+    setSelectedId(id);
+    setMsgPage(1);
+  }
 
   function otherMember(conv: Conversation) {
     return conv.members.find((m) => m.id !== user?.id) ?? conv.members[0];
@@ -80,13 +108,16 @@ export function Inbox() {
     if (!selectedId || !compose.trim()) return;
     setSending(true);
     try {
-      const data = await clientApi<{ message: Message }>(`/api/messages/${selectedId}`, {
-        method: "POST",
-        json: { body: compose.trim() },
-      });
+      const data = await clientApi<{ message: Message }>(
+        `/api/messages/${selectedId}`,
+        {
+          method: "POST",
+          json: { body: compose.trim() },
+        }
+      );
       setMessages((prev) => [...prev, data.message]);
       setCompose("");
-      loadConversations();
+      loadConversations(convPage);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error");
     } finally {
@@ -98,16 +129,20 @@ export function Inbox() {
     if (!recipientId.trim() || !newBody.trim()) return;
     setSending(true);
     try {
-      const data = await clientApi<{ conversation: { id: string } }>("/api/messages", {
-        method: "POST",
-        json: { recipientId: recipientId.trim(), body: newBody.trim() },
-      });
+      const data = await clientApi<{ conversation: { id: string } }>(
+        "/api/messages",
+        {
+          method: "POST",
+          json: { recipientId: recipientId.trim(), body: newBody.trim() },
+        }
+      );
       toast.success(t("send"));
       setShowNew(false);
       setRecipientId("");
       setNewBody("");
-      await loadConversations();
-      setSelectedId(data.conversation.id);
+      setConvPage(1);
+      await loadConversations(1);
+      selectConversation(data.conversation.id);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error");
     } finally {
@@ -156,10 +191,19 @@ export function Inbox() {
               placeholder={t("compose")}
             />
             <div className="flex gap-2">
-              <button type="button" className="btn btn-primary text-xs" disabled={sending} onClick={sendNew}>
+              <button
+                type="button"
+                className="btn btn-primary text-xs"
+                disabled={sending}
+                onClick={sendNew}
+              >
                 {t("send")}
               </button>
-              <button type="button" className="btn btn-secondary text-xs" onClick={() => setShowNew(false)}>
+              <button
+                type="button"
+                className="btn btn-secondary text-xs"
+                onClick={() => setShowNew(false)}
+              >
                 {tc("cancel")}
               </button>
             </div>
@@ -177,7 +221,7 @@ export function Inbox() {
                 <button
                   key={conv.id}
                   type="button"
-                  onClick={() => setSelectedId(conv.id)}
+                  onClick={() => selectConversation(conv.id)}
                   className={cn(
                     "flex w-full items-start gap-3 border-b border-border px-4 py-3 text-start transition",
                     active ? "bg-primary-soft" : "hover:bg-gray-50"
@@ -197,11 +241,29 @@ export function Inbox() {
             })
           )}
         </div>
+        {convPagination.totalPages > 1 && (
+          <div className="border-t border-border p-2">
+            <Pagination
+              pagination={convPagination}
+              onPageChange={setConvPage}
+              className="mt-0"
+            />
+          </div>
+        )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         {selectedId ? (
           <>
+            {msgPagination.totalPages > 1 && (
+              <div className="border-b border-border px-4 py-2">
+                <Pagination
+                  pagination={msgPagination}
+                  onPageChange={setMsgPage}
+                  className="mt-0"
+                />
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.map((m) => {
                 const mine = m.sender.id === user?.id;

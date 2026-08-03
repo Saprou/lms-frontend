@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Layers, Plus, Pencil, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/layout/app-shell";
+import { Pagination, type PaginationMeta } from "@/components/ui/pagination";
 import { clientApi } from "@/lib/api-client";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -16,6 +17,14 @@ type Level = {
   order: number;
 };
 
+const emptyPagination: PaginationMeta = {
+  page: 1,
+  limit: 20,
+  total: 0,
+  totalPages: 1,
+  hasMore: false,
+};
+
 export default function LevelsPage() {
   const t = useTranslations("levels");
   const tc = useTranslations("common");
@@ -24,6 +33,8 @@ export default function LevelsPage() {
   const { user, loading: authLoading } = useAuth();
 
   const [levels, setLevels] = useState<Level[]>([]);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationMeta>(emptyPagination);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
@@ -41,11 +52,15 @@ export default function LevelsPage() {
     }
   }, [authLoading, user, locale, router]);
 
-  async function loadLevels() {
+  async function loadLevels(currentPage = page) {
     setLoading(true);
     try {
-      const data = await clientApi<{ levels: Level[] }>("/api/levels");
+      const data = await clientApi<{
+        levels: Level[];
+        pagination: PaginationMeta;
+      }>(`/api/levels?page=${currentPage}&limit=20`);
       setLevels(data.levels ?? []);
+      setPagination(data.pagination ?? emptyPagination);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error");
     } finally {
@@ -54,8 +69,9 @@ export default function LevelsPage() {
   }
 
   useEffect(() => {
-    if (user?.role === "INSTRUCTOR") loadLevels();
-  }, [user?.role]);
+    if (user?.role === "INSTRUCTOR") loadLevels(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, page]);
 
   function resetForm() {
     setName("");
@@ -169,39 +185,42 @@ export default function LevelsPage() {
           ) : levels.length === 0 ? (
             <div className="card p-12 text-center text-muted">{t("empty")}</div>
           ) : (
-            <div className="space-y-3">
-              {levels.map((level) => (
-                <div key={level.id} className="card flex items-start gap-4 p-5">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary">
-                    {level.order + 1}
+            <>
+              <div className="space-y-3">
+                {levels.map((level) => (
+                  <div key={level.id} className="card flex items-start gap-4 p-5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary">
+                      {level.order + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold">{level.name}</h3>
+                      {level.description && (
+                        <p className="mt-1 text-sm text-muted">{level.description}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg p-2 text-muted hover:bg-primary-soft hover:text-primary"
+                        onClick={() => startEdit(level)}
+                        title={tc("edit")}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-danger"
+                        onClick={() => handleDelete(level.id)}
+                        title={tc("delete")}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-bold">{level.name}</h3>
-                    {level.description && (
-                      <p className="mt-1 text-sm text-muted">{level.description}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      className="rounded-lg p-2 text-muted hover:bg-primary-soft hover:text-primary"
-                      onClick={() => startEdit(level)}
-                      title={tc("edit")}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-danger"
-                      onClick={() => handleDelete(level.id)}
-                      title={tc("delete")}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <Pagination pagination={pagination} onPageChange={setPage} />
+            </>
           )}
         </div>
       </div>

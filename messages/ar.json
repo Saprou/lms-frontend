@@ -43,7 +43,8 @@
     "support": "الدعم",
     "createCourse": "إنشاء دورة",
     "browse": "تصفح الدورات",
-    "levels": "المستويات"
+    "levels": "المستويات",
+    "students": "الطلاب"
   },
   "home": {
     "badge": "منصة تعليمية للمعلّم",
@@ -60,6 +61,11 @@
     "welcomeBack": "مرحباً بعودتك",
     "createAccount": "أنشئ حسابك",
     "email": "البريد الإلكتروني",
+    "phone": "رقم الموبايل",
+    "phonePlaceholder": "01xxxxxxxxx",
+    "emailOrPhone": "البريد أو الموبايل",
+    "emailOrPhonePlaceholder": "email@example.com أو 01xxxxxxxxx",
+    "invalidCredentials": "البريد/الموبايل أو كلمة المرور غير صحيحة",
     "password": "كلمة المرور",
     "name": "الاسم الكامل",
     "role": "أنا",
@@ -67,11 +73,45 @@
     "instructor": "معلّم",
     "noAccount": "ليس لديك حساب؟",
     "hasAccount": "لديك حساب بالفعل؟",
-    "demoHint": "تجريبي: student@lms.dev / instructor@lms.dev — كلمة المرور: password123",
+    "demoHint": "تجريبي: student@lms.dev أو 01000000001 / instructor@lms.dev — كلمة المرور: password123",
     "level": "المستوى",
     "levelRequired": "يرجى اختيار مستوى",
     "noLevels": "لا توجد مستويات بعد",
-    "levelsLoadError": "تعذر تحميل المستويات"
+    "levelsLoadError": "تعذر تحميل المستويات",
+    "pendingTitle": "بانتظار الموافقة",
+    "pendingBody": "تم إنشاء حسابك بنجاح. يجب أن يوافق المعلّم قبل أن تتمكن من الوصول إلى لوحة التحكم والدورات.",
+    "pendingHint": "تُحدَّث هذه الصفحة تلقائياً. يمكنك أيضاً التحقق يدوياً.",
+    "pendingApprovalToast": "تم إنشاء الحساب — بانتظار موافقة المعلّم",
+    "checkStatus": "تحقق من الحالة",
+    "blockedTitle": "الحساب محظور",
+    "blockedBody": "قام المعلّم بحظر حسابك. لا يمكنك الوصول إلى لوحة التحكم حتى يتم رفع الحظر."
+  },
+  "students": {
+    "title": "الطلاب",
+    "subtitle": "وافق على التسجيلات الجديدة، وأدر الطلاب النشطين، وارفع الحظر عن الحسابات.",
+    "tabAll": "الكل",
+    "tabPending": "بانتظار الموافقة",
+    "tabActive": "نشط",
+    "tabBlocked": "محظور",
+    "searchPlaceholder": "ابحث بالاسم أو البريد أو الموبايل أو المستوى...",
+    "empty": "لا يوجد طلاب بانتظار الموافقة.",
+    "emptyAll": "لا يوجد طلاب بعد.",
+    "emptyActive": "لا يوجد طلاب نشطون بعد.",
+    "emptyBlocked": "لا يوجد طلاب محظورون.",
+    "emptySearch": "لا يوجد طلاب مطابقون لبحثك.",
+    "statusPending": "بانتظار الموافقة",
+    "statusActive": "نشط",
+    "statusBlocked": "محظور",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "block": "حظر",
+    "unblock": "إلغاء الحظر",
+    "approved": "تمت الموافقة على الطالب",
+    "rejected": "تم رفض التسجيل",
+    "blocked": "تم حظر الطالب",
+    "unblocked": "تم رفع الحظر عن الطالب",
+    "confirmReject": "رفض وحذف هذا التسجيل؟",
+    "confirmBlock": "حظر هذا الطالب من الوصول إلى المنصة؟"
   },
   "levels": {
     "title": "المستويات",
@@ -193,11 +233,35 @@
     "awardPoints": "الدرجات الممنوحة",
     "opensAt": "يفتح {date}",
     "closesAt": "يغلق {date}",
+    "startsAt": "يفتح في",
+    "endsAt": "يغلق في",
     "duration": "{minutes} دقيقة",
+    "durationLabel": "المدة (دقيقة)",
     "expired": "انتهى الوقت",
     "inProgress": "قيد التنفيذ",
     "notOpen": "الاختبار لم يفتح بعد",
-    "closed": "أُغلق موعد الاختبار"
+    "closed": "أُغلق موعد الاختبار",
+    "level": "المستوى",
+    "levelRequired": "يرجى اختيار مستوى لهذا الاختبار",
+    "noLevels": "لا توجد مستويات — أنشئ مستوى أولاً",
+    "courseOptional": "الدورة (اختياري)",
+    "courseOptionalHint": "اتركه فارغاً لتعيين الاختبار للمستوى بالكامل",
+    "noCourse": "بدون دورة — المستوى فقط",
+    "examTitle": "عنوان الاختبار",
+    "titleRequired": "العنوان مطلوب",
+    "description": "الوصف",
+    "questions": "الأسئلة",
+    "questionPrompt": "نص السؤال",
+    "multipleChoice": "اختيار من متعدد",
+    "option": "خيار",
+    "details": "التفاصيل"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "empty": "لا توجد إشعارات بعد.",
+    "loading": "جاري التحميل...",
+    "markAllRead": "تعليم الكل كمقروء",
+    "loadMore": "تحميل المزيد"
   },
   "messages": {
     "title": "الرسائل",
@@ -225,5 +289,10 @@
     "reply": "رد",
     "replies": "{count} ردود",
     "noPosts": "كن أول من يبدأ نقاشاً."
+  },
+  "pagination": {
+    "prev": "السابق",
+    "next": "التالي",
+    "showing": "صفحة {page} من {totalPages} ({total} إجمالي)"
   }
 }

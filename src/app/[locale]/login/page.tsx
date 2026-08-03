@@ -15,7 +15,7 @@ export default function LoginPage() {
   const locale = useLocale();
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,11 +24,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      router.push(`/${locale}/dashboard`);
+      const user = await login(identifier, password);
+      if (user.role === "STUDENT" && user.blocked) {
+        router.push(`/${locale}/blocked`);
+      } else if (user.role === "STUDENT" && !user.approved) {
+        router.push(`/${locale}/pending`);
+      } else {
+        router.push(`/${locale}/dashboard`);
+      }
       router.refresh();
     } catch {
-      toast.error("Invalid email or password");
+      toast.error(t("invalidCredentials"));
     } finally {
       setLoading(false);
     }
@@ -53,17 +59,18 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="email" className="label">
-                {t("email")}
+              <label htmlFor="identifier" className="label">
+                {t("emailOrPhone")}
               </label>
               <input
-                id="email"
-                type="email"
+                id="identifier"
+                type="text"
                 className="input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
-                autoComplete="email"
+                autoComplete="username"
+                placeholder={t("emailOrPhonePlaceholder")}
               />
             </div>
             <div>

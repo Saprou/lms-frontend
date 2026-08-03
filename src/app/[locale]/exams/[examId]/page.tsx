@@ -37,7 +37,9 @@ export default async function ExamDetailPage({ params }: Props) {
         durationMin: number;
         opensAt: string | null;
         closesAt: string | null;
-        course: { id: string; title: string; instructorId: string };
+        instructorId: string;
+        course: { id: string; title: string } | null;
+        level: { id: string; name: string } | null;
         questions: { points: number }[];
       };
       attempts: {
@@ -52,7 +54,7 @@ export default async function ExamDetailPage({ params }: Props) {
   }
 
   const { exam, attempts } = examData;
-  const isInstructor = exam.course.instructorId === user.id;
+  const isInstructor = exam.instructorId === user.id;
 
   const now = new Date();
   const opensAt = exam.opensAt ? new Date(exam.opensAt) : null;
@@ -85,7 +87,10 @@ export default async function ExamDetailPage({ params }: Props) {
     <AppShell title={exam.title}>
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="card p-6">
-          <p className="text-sm text-muted">{exam.course.title}</p>
+          <p className="text-sm text-muted">
+            {exam.level?.name}
+            {exam.course ? ` · ${exam.course.title}` : ""}
+          </p>
           {exam.description && (
             <p className="mt-3 text-sm leading-relaxed">{exam.description}</p>
           )}

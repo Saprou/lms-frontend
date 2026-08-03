@@ -13,15 +13,24 @@ export default async function NewExamPage({ params }: Props) {
   await requireRole("INSTRUCTOR", locale);
   const t = await getTranslations("exam");
 
-  const dashboard = await serverApi<{
-    courses: { id: string; title: string }[];
-  }>("/api/dashboard");
+  const [{ levels }, dashboard] = await Promise.all([
+    serverApi<{ levels: { id: string; name: string; description: string | null }[] }>(
+      "/api/levels"
+    ),
+    serverApi<{
+      courses: { id: string; title: string; levelId?: string | null }[];
+    }>("/api/dashboard"),
+  ]);
 
-  const courses = dashboard.courses.map((c) => ({ id: c.id, title: c.title }));
+  const courses = dashboard.courses.map((c) => ({
+    id: c.id,
+    title: c.title,
+    levelId: c.levelId ?? null,
+  }));
 
   return (
     <AppShell title={t("create")}>
-      <NewExamForm courses={courses} />
+      <NewExamForm levels={levels} courses={courses} />
     </AppShell>
   );
 }

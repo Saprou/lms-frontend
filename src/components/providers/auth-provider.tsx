@@ -20,10 +20,11 @@ import type { AuthUser } from "@/lib/types";
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<AuthUser>;
   signup: (input: {
     name: string;
     email: string;
+    phone: string;
     password: string;
     levelId: string;
   }) => Promise<void>;
@@ -59,22 +60,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string) => {
     const res = await fetch(`${API_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Login failed");
     setClientToken(data.token);
     setUser(data.user);
+    return data.user as AuthUser;
   }, []);
 
   const signup = useCallback(
     async (input: {
       name: string;
       email: string;
+      phone: string;
       password: string;
       levelId: string;
     }) => {
@@ -85,9 +88,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(
-          typeof data.error === "string" ? data.error : "Signup failed"
-        );
+        const message =
+          typeof data.error === "string"
+            ? data.error
+            : Array.isArray(data.error)
+              ? data.error[0]?.message || "Signup failed"
+              : "Signup failed";
+        throw new Error(message);
       }
       await login(input.email, input.password);
     },

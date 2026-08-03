@@ -38,15 +38,12 @@ export function GradeAttemptClient({ attemptId }: { attemptId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    clientApi<{ role: string; attemptsNeedingGrading: DashboardAttempt[] }>(
-      "/api/dashboard"
-    )
+    clientApi<{ attempt: DashboardAttempt }>(`/api/exams/attempts/${attemptId}`)
       .then((data) => {
-        const found = data.attemptsNeedingGrading?.find((a) => a.id === attemptId);
-        if (found) {
-          setAttempt(found);
+        if (data.attempt) {
+          setAttempt(data.attempt);
         } else {
-          setError("Attempt not found or already graded");
+          setError("Attempt not found");
         }
       })
       .catch((err) => {
@@ -63,7 +60,9 @@ export function GradeAttemptClient({ attemptId }: { attemptId: string }) {
     return <div className="card p-12 text-center text-muted">{error ?? tc("noResults")}</div>;
   }
 
-  const maxScore = attempt.exam.questions.reduce((s, q) => s + q.points, 0);
+  const maxScore =
+    attempt.exam.questions?.reduce((s, q) => s + q.points, 0) ??
+    attempt.answers.reduce((s, a) => s + a.question.points, 0);
   const mcqScore = attempt.answers
     .filter((a) => a.question.type === "MCQ")
     .reduce((s, a) => s + (a.pointsAwarded ?? 0), 0);

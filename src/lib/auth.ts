@@ -19,6 +19,12 @@ export async function getServerUser(): Promise<AuthUser | null> {
 export async function requireUser(locale = "en") {
   const user = await getServerUser();
   if (!user) redirect(`/${locale}/login`);
+  if (user.role === "STUDENT" && user.blocked) {
+    redirect(`/${locale}/blocked`);
+  }
+  if (user.role === "STUDENT" && !user.approved) {
+    redirect(`/${locale}/pending`);
+  }
   return user;
 }
 
@@ -31,5 +37,12 @@ export async function requireRole(
   if (!roles.includes(user.role)) {
     redirect(`/${locale}/dashboard`);
   }
+  return user;
+}
+
+/** Allow pending students (pending page / status checks). */
+export async function requireUserAllowPending(locale = "en") {
+  const user = await getServerUser();
+  if (!user) redirect(`/${locale}/login`);
   return user;
 }

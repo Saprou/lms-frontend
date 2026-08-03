@@ -43,7 +43,8 @@
     "support": "Support",
     "createCourse": "Create course",
     "browse": "Browse courses",
-    "levels": "Levels"
+    "levels": "Levels",
+    "students": "Students"
   },
   "home": {
     "badge": "Instructor learning platform",
@@ -60,6 +61,11 @@
     "welcomeBack": "Welcome back",
     "createAccount": "Create your account",
     "email": "Email",
+    "phone": "Mobile phone",
+    "phonePlaceholder": "01xxxxxxxxx",
+    "emailOrPhone": "Email or mobile",
+    "emailOrPhonePlaceholder": "email@example.com or 01xxxxxxxxx",
+    "invalidCredentials": "Invalid email/mobile or password",
     "password": "Password",
     "name": "Full name",
     "role": "I am a",
@@ -67,11 +73,45 @@
     "instructor": "Instructor",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
-    "demoHint": "Demo: student@lms.dev / instructor@lms.dev — password: password123",
+    "demoHint": "Demo: student@lms.dev or 01000000001 / instructor@lms.dev — password: password123",
     "level": "Level",
     "levelRequired": "Please choose a level",
     "noLevels": "No levels available yet",
-    "levelsLoadError": "Could not load levels"
+    "levelsLoadError": "Could not load levels",
+    "pendingTitle": "Waiting for approval",
+    "pendingBody": "Your account was created successfully. An instructor must approve you before you can access the dashboard and courses.",
+    "pendingHint": "This page refreshes automatically. You can also check again manually.",
+    "pendingApprovalToast": "Account created — waiting for instructor approval",
+    "checkStatus": "Check status",
+    "blockedTitle": "Account blocked",
+    "blockedBody": "An instructor has blocked your account. You cannot access the dashboard until you are unblocked."
+  },
+  "students": {
+    "title": "Students",
+    "subtitle": "Approve new registrations, manage active students, and unblock accounts.",
+    "tabAll": "All",
+    "tabPending": "Pending",
+    "tabActive": "Active",
+    "tabBlocked": "Blocked",
+    "searchPlaceholder": "Search by name, email, phone, or level...",
+    "empty": "No students waiting for approval.",
+    "emptyAll": "No students yet.",
+    "emptyActive": "No active students yet.",
+    "emptyBlocked": "No blocked students.",
+    "emptySearch": "No students match your search.",
+    "statusPending": "Pending",
+    "statusActive": "Active",
+    "statusBlocked": "Blocked",
+    "approve": "Approve",
+    "reject": "Reject",
+    "block": "Block",
+    "unblock": "Unblock",
+    "approved": "Student approved",
+    "rejected": "Registration rejected",
+    "blocked": "Student blocked",
+    "unblocked": "Student unblocked",
+    "confirmReject": "Reject and delete this registration?",
+    "confirmBlock": "Block this student from accessing the platform?"
   },
   "levels": {
     "title": "Levels",
@@ -193,11 +233,35 @@
     "awardPoints": "Points awarded",
     "opensAt": "Opens {date}",
     "closesAt": "Closes {date}",
+    "startsAt": "Opens at",
+    "endsAt": "Closes at",
     "duration": "{minutes} minutes",
+    "durationLabel": "Duration (min)",
     "expired": "Time expired",
     "inProgress": "In progress",
     "notOpen": "Exam is not open yet",
-    "closed": "Exam window closed"
+    "closed": "Exam window closed",
+    "level": "Level",
+    "levelRequired": "Please select a level for this exam",
+    "noLevels": "No levels available — create one first",
+    "courseOptional": "Course (optional)",
+    "courseOptionalHint": "Leave empty to assign the exam to the whole level",
+    "noCourse": "No course — level only",
+    "examTitle": "Exam title",
+    "titleRequired": "Title is required",
+    "description": "Description",
+    "questions": "Questions",
+    "questionPrompt": "Question prompt",
+    "multipleChoice": "Multiple choice",
+    "option": "Option",
+    "details": "Details"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet.",
+    "loading": "Loading...",
+    "markAllRead": "Mark all read",
+    "loadMore": "Load more"
   },
   "messages": {
     "title": "Messages",
@@ -225,5 +289,10 @@
     "reply": "Reply",
     "replies": "{count} replies",
     "noPosts": "Be the first to start a discussion."
+  },
+  "pagination": {
+    "prev": "Previous",
+    "next": "Next",
+    "showing": "Page {page} of {totalPages} ({total} total)"
   }
 }
