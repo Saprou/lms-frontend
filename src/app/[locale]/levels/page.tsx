@@ -15,6 +15,7 @@ type Level = {
   name: string;
   description: string | null;
   order: number;
+  _count?: { users: number };
 };
 
 const emptyPagination: PaginationMeta = {
@@ -197,6 +198,9 @@ export default function LevelsPage() {
                       {level.description && (
                         <p className="mt-1 text-sm text-muted">{level.description}</p>
                       )}
+                      <p className="mt-2 text-xs font-medium text-primary">
+                        {t("studentsCount", { count: level._count?.users ?? 0 })}
+                      </p>
                     </div>
                     <div className="flex gap-1">
                       <button

@@ -119,6 +119,7 @@
     "edit": "Edit level",
     "name": "Level name",
     "description": "Description",
+    "studentsCount": "{count, plural, =0 {No students} one {# student} other {# students}}",
     "empty": "No levels yet. Create the first one.",
     "created": "Level created",
     "updated": "Level updated",
