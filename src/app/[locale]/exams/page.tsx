@@ -77,7 +77,7 @@ export default async function ExamsPage({ params, searchParams }: Props) {
   const pager = (
     <Pagination
       pagination={pagination}
-      hrefForPage={(p) => `/${locale}/exams?page=${p}`}
+      hrefBase={`/${locale}/exams`}
     />
   );
 
@@ -138,6 +138,12 @@ export default async function ExamsPage({ params, searchParams }: Props) {
                         className="btn btn-secondary"
                       >
                         {t("details")}
+                      </Link>
+                      <Link
+                        href={`/${locale}/exams/${exam.id}/edit`}
+                        className="btn btn-secondary"
+                      >
+                        {t("edit")}
                       </Link>
                       {(gradingByExam[exam.id] ?? []).map((a) => (
                         <Link

@@ -3,10 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Clock, FileText } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { Pagination, type PaginationMeta } from "@/components/ui/pagination";
 import { getServerUser } from "@/lib/auth";
 import { serverApi } from "@/lib/api-server";
+import { cn } from "@/lib/utils";
 
-type Props = { params: Promise<{ locale: string; examId: string }> };
+type Props = {
+  params: Promise<{ locale: string; examId: string }>;
+  searchParams: Promise<{ page?: string }>;
+};
 
 function formatDate(d: string | null, locale: string) {
   if (!d) return "—";
@@ -16,16 +21,28 @@ function formatDate(d: string | null, locale: string) {
   });
 }
 
-export default async function ExamDetailPage({ params }: Props) {
+type AttemptRow = {
+  id: string;
+  status: string;
+  score: number | null;
+  maxScore: number | null;
+  startedAt: string;
+  submittedAt: string | null;
+  user?: { id: string; name: string; email: string };
+};
+
+export default async function ExamDetailPage({ params, searchParams }: Props) {
   const { locale, examId } = await params;
+  const { page: pageParam } = await searchParams;
   setRequestLocale(locale);
 
   const user = await getServerUser();
   if (!user) redirect(`/${locale}/login`);
 
   const t = await getTranslations("exam");
-  const td = await getTranslations("dashboard");
   const tc = await getTranslations("common");
+
+  const page = Math.max(1, Number(pageParam) || 1);
 
   let examData;
   try {
@@ -42,18 +59,14 @@ export default async function ExamDetailPage({ params }: Props) {
         level: { id: string; name: string } | null;
         questions: { points: number }[];
       };
-      attempts: {
-        id: string;
-        status: string;
-        score: number | null;
-        maxScore: number | null;
-      }[];
-    }>(`/api/exams/${examId}`);
+      attempts: AttemptRow[];
+      pagination?: PaginationMeta;
+    }>(`/api/exams/${examId}?page=${page}&limit=20`);
   } catch {
     notFound();
   }
 
-  const { exam, attempts } = examData;
+  const { exam, attempts, pagination } = examData;
   const isInstructor = exam.instructorId === user.id;
 
   const now = new Date();
@@ -65,22 +78,11 @@ export default async function ExamDetailPage({ params }: Props) {
   const inProgress = latestAttempt?.status === "IN_PROGRESS";
   const maxPoints = exam.questions.reduce((s, q) => s + q.points, 0);
 
-  let pendingGrading: { id: string; user: { name: string } }[] = [];
-  if (isInstructor) {
-    try {
-      const dashboard = await serverApi<{
-        attemptsNeedingGrading: {
-          id: string;
-          exam: { id: string };
-          user: { name: string };
-        }[];
-      }>("/api/dashboard");
-      pendingGrading = (dashboard.attemptsNeedingGrading ?? [])
-        .filter((a) => a.exam.id === examId)
-        .map((a) => ({ id: a.id, user: a.user }));
-    } catch {
-      pendingGrading = [];
-    }
+  function statusLabel(status: string) {
+    if (status === "IN_PROGRESS") return t("inProgress");
+    if (status === "SUBMITTED") return t("submitted");
+    if (status === "RELEASED") return t("released");
+    return status;
   }
 
   return (
@@ -116,6 +118,17 @@ export default async function ExamDetailPage({ params }: Props) {
             )}
           </div>
 
+          {isInstructor && (
+            <div className="mt-6">
+              <Link
+                href={`/${locale}/exams/${examId}/edit`}
+                className="btn btn-secondary"
+              >
+                {t("edit")}
+              </Link>
+            </div>
+          )}
+
           {!isInstructor && (
             <div className="mt-6 flex flex-wrap gap-3">
               {isOpen && !latestAttempt?.status?.match(/SUBMITTED|RELEASED/) && (
@@ -141,33 +154,89 @@ export default async function ExamDetailPage({ params }: Props) {
                   {t("submitted")}
                 </span>
               )}
-              {latestAttempt?.status === "RELEASED" && latestAttempt.score != null && (
-                <span className="rounded-lg bg-green-50 px-4 py-2 text-sm font-semibold text-success">
-                  {t("grade", {
-                    score: latestAttempt.score,
-                    max: latestAttempt.maxScore ?? maxPoints,
-                  })}
-                </span>
-              )}
+              {latestAttempt?.status === "RELEASED" &&
+                latestAttempt.score != null && (
+                  <span className="rounded-lg bg-green-50 px-4 py-2 text-sm font-semibold text-success">
+                    {t("grade", {
+                      score: latestAttempt.score,
+                      max: latestAttempt.maxScore ?? maxPoints,
+                    })}
+                  </span>
+                )}
             </div>
           )}
         </div>
 
-        {isInstructor && pendingGrading.length > 0 && (
+        {isInstructor && (
           <div className="card p-6">
-            <h2 className="mb-4 font-bold">{td("gradingQueue")}</h2>
-            <div className="space-y-2">
-              {pendingGrading.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/${locale}/exams/attempts/${a.id}/grade`}
-                  className="flex items-center justify-between rounded-lg border border-border px-4 py-3 hover:bg-gray-50"
-                >
-                  <span className="font-medium">{a.user.name}</span>
-                  <span className="text-sm text-primary">{t("review")}</span>
-                </Link>
-              ))}
-            </div>
+            <h2 className="mb-4 font-bold">{t("attempts")}</h2>
+            {attempts.length === 0 ? (
+              <p className="text-sm text-muted">{t("noAttempts")}</p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {attempts.map((a) => {
+                    const canReview =
+                      a.status === "SUBMITTED" || a.status === "RELEASED";
+                    return (
+                      <div
+                        key={a.id}
+                        className="flex flex-col gap-3 rounded-lg border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium">{a.user?.name ?? "—"}</p>
+                          <p className="truncate text-xs text-muted">
+                            {a.user?.email}
+                          </p>
+                          <p className="mt-1 text-xs text-muted">
+                            {a.submittedAt
+                              ? formatDate(a.submittedAt, locale)
+                              : formatDate(a.startedAt, locale)}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          <span
+                            className={cn(
+                              "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                              a.status === "IN_PROGRESS" &&
+                                "bg-amber-50 text-amber-700",
+                              a.status === "SUBMITTED" &&
+                                "bg-primary-soft text-primary",
+                              a.status === "RELEASED" &&
+                                "bg-green-50 text-success"
+                            )}
+                          >
+                            {statusLabel(a.status)}
+                          </span>
+                          {a.status === "RELEASED" && a.score != null && (
+                            <span className="text-sm font-semibold">
+                              {t("grade", {
+                                score: a.score,
+                                max: a.maxScore ?? maxPoints,
+                              })}
+                            </span>
+                          )}
+                          {canReview && (
+                            <Link
+                              href={`/${locale}/exams/attempts/${a.id}/grade`}
+                              className="btn btn-secondary text-xs"
+                            >
+                              {t("review")}
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {pagination && (
+                  <Pagination
+                    pagination={pagination}
+                    hrefBase={`/${locale}/exams/${examId}`}
+                  />
+                )}
+              </>
+            )}
           </div>
         )}
 

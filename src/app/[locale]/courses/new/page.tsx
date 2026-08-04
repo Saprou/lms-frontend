@@ -21,6 +21,7 @@ type BlockDraft = {
   type: BlockType;
   content: string;
   mediaUrl: string | null;
+  mediaPublicId: string | null;
   file: File | null;
 };
 
@@ -43,15 +44,30 @@ function uid() {
   return `draft-${uidCounter}`;
 }
 
-async function uploadFile(file: File, folder: string): Promise<string> {
+async function uploadFile(
+  file: File,
+  folder: string
+): Promise<{
+  url: string;
+  publicId: string | null;
+  streamingStatus?: "PENDING" | "READY" | "FAILED" | "NONE";
+}> {
   const form = new FormData();
   form.append("file", file);
   form.append("folder", folder);
-  const data = await clientApi<{ url: string }>("/api/upload", {
+  const data = await clientApi<{
+    url: string;
+    publicId?: string | null;
+    streamingStatus?: "PENDING" | "READY" | "FAILED" | "NONE";
+  }>("/api/upload", {
     method: "POST",
     formData: form,
   });
-  return data.url;
+  return {
+    url: data.url,
+    publicId: data.publicId ?? null,
+    streamingStatus: data.streamingStatus,
+  };
 }
 
 export default function NewCoursePage() {
@@ -116,7 +132,15 @@ export default function NewCoursePage() {
                   id: uid(),
                   title: "",
                   durationMin: 5,
-                  blocks: [{ type: "TEXT", content: "", mediaUrl: null, file: null }],
+                  blocks: [
+                    {
+                      type: "TEXT",
+                      content: "",
+                      mediaUrl: null,
+                      mediaPublicId: null,
+                      file: null,
+                    },
+                  ],
                 },
               ],
             }
@@ -166,7 +190,13 @@ export default function NewCoursePage() {
                       ...l,
                       blocks: [
                         ...l.blocks,
-                        { type, content: "", mediaUrl: null, file: null },
+                        {
+                          type,
+                          content: "",
+                          mediaUrl: null,
+                          mediaPublicId: null,
+                          file: null,
+                        },
                       ],
                     }
                   : l
@@ -242,7 +272,8 @@ export default function NewCoursePage() {
     try {
       let finalCoverUrl = coverUrl;
       if (coverFile) {
-        finalCoverUrl = await uploadFile(coverFile, "covers");
+        const uploaded = await uploadFile(coverFile, "covers");
+        finalCoverUrl = uploaded.url;
       }
 
       const courseData = await clientApi<{ course: { id: string } }>("/api/courses", {
@@ -278,14 +309,33 @@ export default function NewCoursePage() {
           for (let bi = 0; bi < lesson.blocks.length; bi++) {
             const block = lesson.blocks[bi];
             let mediaUrl = block.mediaUrl;
+            let mediaPublicId = block.mediaPublicId;
+            let streamingStatus:
+              | "PENDING"
+              | "READY"
+              | "FAILED"
+              | "NONE"
+              | undefined;
             if (block.file) {
               const folder = block.type === "VIDEO" ? "videos" : "images";
-              mediaUrl = await uploadFile(block.file, folder);
+              const uploaded = await uploadFile(block.file, folder);
+              mediaUrl = uploaded.url;
+              mediaPublicId =
+                block.type === "VIDEO" ? uploaded.publicId : null;
+              streamingStatus =
+                block.type === "VIDEO"
+                  ? uploaded.streamingStatus ?? "PENDING"
+                  : undefined;
             }
             blocks.push({
               type: block.type,
               content: block.content,
               mediaUrl,
+              mediaPublicId:
+                block.type === "VIDEO" ? mediaPublicId : null,
+              ...(block.type === "VIDEO" && mediaPublicId
+                ? { streamingStatus: streamingStatus ?? "PENDING" }
+                : {}),
               order: bi,
             });
           }

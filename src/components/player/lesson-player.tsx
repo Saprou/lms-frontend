@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ChevronRight,
-  Download,
   CheckCircle2,
   Circle,
   StickyNote,
@@ -15,12 +14,14 @@ import {
 import toast from "react-hot-toast";
 import { clientApi } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { SecureVideoPlayer } from "./secure-video-player";
 
 type Block = {
   id: string;
   type: "VIDEO" | "IMAGE" | "TEXT";
   content: string;
   mediaUrl: string | null;
+  hasSecureVideo?: boolean;
   order: number;
 };
 
@@ -70,15 +71,17 @@ export function LessonPlayer({
   const t = useTranslations("player");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPosition = useRef(initialWatchPosition);
 
   const [tab, setTab] = useState<Tab>("overview");
   const [completed, setCompleted] = useState(initialCompleted);
   const [note, setNote] = useState("");
   const [savedNotes, setSavedNotes] = useState<string[]>([]);
 
-  const videoBlock = lesson.blocks.find((b) => b.type === "VIDEO" && b.mediaUrl);
+  const videoBlock = lesson.blocks.find(
+    (b) => b.type === "VIDEO" && (b.hasSecureVideo || b.mediaUrl)
+  );
 
   const saveProgress = useCallback(
     async (position: number, markComplete?: boolean) => {
@@ -98,25 +101,16 @@ export function LessonPlayer({
     [lesson.id]
   );
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video && initialWatchPosition > 0) {
-      video.currentTime = initialWatchPosition;
-    }
-  }, [initialWatchPosition, lesson.id]);
-
-  function handleTimeUpdate() {
-    const video = videoRef.current;
-    if (!video) return;
-
+  function handleTimeUpdate(currentTime: number) {
+    lastPosition.current = currentTime;
     if (progressTimer.current) clearTimeout(progressTimer.current);
     progressTimer.current = setTimeout(() => {
-      saveProgress(video.currentTime);
+      saveProgress(currentTime);
     }, 3000);
   }
 
   async function handleMarkComplete() {
-    await saveProgress(videoRef.current?.currentTime ?? 0, true);
+    await saveProgress(lastPosition.current, true);
     setCompleted(true);
     toast.success(t("completed"));
   }
@@ -161,13 +155,24 @@ export function LessonPlayer({
         <h1 className="text-2xl font-bold tracking-tight">{lesson.title}</h1>
 
         <div className="overflow-hidden rounded-2xl bg-black">
-          {videoBlock?.mediaUrl ? (
+          {videoBlock?.hasSecureVideo ? (
+            <SecureVideoPlayer
+              lessonId={lesson.id}
+              blockId={videoBlock.id}
+              initialWatchPosition={initialWatchPosition}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          ) : videoBlock?.mediaUrl ? (
+            // Instructor-only legacy/demo preview — students never receive mediaUrl for VIDEO
             <video
-              ref={videoRef}
               src={videoBlock.mediaUrl}
               controls
+              controlsList="nodownload"
               className="aspect-video w-full"
-              onTimeUpdate={handleTimeUpdate}
+              onContextMenu={(e) => e.preventDefault()}
+              onTimeUpdate={(e) =>
+                handleTimeUpdate((e.target as HTMLVideoElement).currentTime)
+              }
             />
           ) : (
             <div className="flex aspect-video items-center justify-center bg-primary-soft text-muted">
@@ -180,10 +185,6 @@ export function LessonPlayer({
           <button type="button" className="btn btn-secondary" onClick={handleSaveNote}>
             <StickyNote className="h-4 w-4" />
             {t("saveNote")}
-          </button>
-          <button type="button" className="btn btn-secondary">
-            <Download className="h-4 w-4" />
-            {tc("download")}
           </button>
           {!completed ? (
             <button type="button" className="btn btn-primary" onClick={handleMarkComplete}>
@@ -245,13 +246,17 @@ export function LessonPlayer({
                       </div>
                     );
                   }
-                  if (block.type === "VIDEO" && block.mediaUrl && block.id !== videoBlock?.id) {
+                  if (
+                    block.type === "VIDEO" &&
+                    (block.hasSecureVideo || block.mediaUrl) &&
+                    block.id !== videoBlock?.id
+                  ) {
                     return (
-                      <video
+                      <SecureVideoPlayer
                         key={block.id}
-                        src={block.mediaUrl}
-                        controls
-                        className="w-full rounded-xl"
+                        lessonId={lesson.id}
+                        blockId={block.id}
+                        className="rounded-xl"
                       />
                     );
                   }

@@ -92,7 +92,7 @@ export default async function CoursesPage({ params, searchParams }: Props) {
           </div>
           <Pagination
             pagination={pagination}
-            hrefForPage={(p) => `/${locale}/courses?page=${p}`}
+            hrefBase={`/${locale}/courses`}
           />
         </>
       )}

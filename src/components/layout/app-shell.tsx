@@ -17,6 +17,7 @@ import {
   GraduationCap,
   Layers,
   UserCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
@@ -37,6 +38,7 @@ const instructorLinks = [
   { href: "/courses", icon: BookOpen, key: "courses" },
   { href: "/levels", icon: Layers, key: "levels" },
   { href: "/students", icon: UserCheck, key: "students" },
+  { href: "/video-access", icon: ShieldAlert, key: "videoAccess" },
   { href: "/exams", icon: ClipboardList, key: "exams" },
   { href: "/calendar", icon: CalendarDays, key: "calendar" },
   { href: "/messages", icon: MessagesSquare, key: "messages" },

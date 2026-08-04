@@ -15,15 +15,18 @@ export type PaginationMeta = {
 type Props = {
   pagination: PaginationMeta;
   onPageChange?: (page: number) => void;
-  /** For server-rendered pages: build href for a page number */
-  hrefForPage?: (page: number) => string;
+  /**
+   * Path for link-based pagination (serializable for Server Components).
+   * Example: "/en/exams" → links become "/en/exams?page=2"
+   */
+  hrefBase?: string;
   className?: string;
 };
 
 export function Pagination({
   pagination,
   onPageChange,
-  hrefForPage,
+  hrefBase,
   className,
 }: Props) {
   const t = useTranslations("pagination");
@@ -34,12 +37,19 @@ export function Pagination({
   const canPrev = page > 1;
   const canNext = page < totalPages;
 
+  function pageHref(p: number) {
+    if (!hrefBase) return undefined;
+    const sep = hrefBase.includes("?") ? "&" : "?";
+    return `${hrefBase}${sep}page=${p}`;
+  }
+
   function go(next: number) {
     if (next < 1 || next > totalPages) return;
     onPageChange?.(next);
   }
 
   const pages = visiblePages(page, totalPages);
+  const useLinks = Boolean(hrefBase);
 
   return (
     <div
@@ -52,9 +62,9 @@ export function Pagination({
         {t("showing", { page, totalPages, total })}
       </p>
       <div className="flex items-center gap-1">
-        {hrefForPage ? (
+        {useLinks ? (
           <a
-            href={canPrev ? hrefForPage(page - 1) : undefined}
+            href={canPrev ? pageHref(page - 1) : undefined}
             aria-disabled={!canPrev}
             className={cn(
               "btn btn-secondary px-2.5 py-1.5 text-sm",
@@ -81,10 +91,10 @@ export function Pagination({
             <span key={`e-${i}`} className="px-1 text-muted">
               …
             </span>
-          ) : hrefForPage ? (
+          ) : useLinks ? (
             <a
               key={p}
-              href={hrefForPage(p)}
+              href={pageHref(p)}
               className={cn(
                 "flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-medium",
                 p === page
@@ -111,9 +121,9 @@ export function Pagination({
           )
         )}
 
-        {hrefForPage ? (
+        {useLinks ? (
           <a
-            href={canNext ? hrefForPage(page + 1) : undefined}
+            href={canNext ? pageHref(page + 1) : undefined}
             aria-disabled={!canNext}
             className={cn(
               "btn btn-secondary px-2.5 py-1.5 text-sm",

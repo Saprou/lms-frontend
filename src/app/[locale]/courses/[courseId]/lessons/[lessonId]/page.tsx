@@ -28,6 +28,7 @@ export default async function LessonPage({ params }: Props) {
             type: "VIDEO" | "IMAGE" | "TEXT";
             content: string;
             mediaUrl: string | null;
+            hasSecureVideo?: boolean;
             order: number;
           }[];
           quizzes: { id: string; title: string }[];

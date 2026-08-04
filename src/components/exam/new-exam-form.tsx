@@ -19,6 +19,25 @@ type QuestionDraft = {
   options: McqOption[];
 };
 
+export type ExamFormInitial = {
+  id: string;
+  title: string;
+  description: string | null;
+  passage: string | null;
+  durationMin: number;
+  opensAt: string | null;
+  closesAt: string | null;
+  levelId: string;
+  courseId: string | null;
+  attemptCount?: number;
+  questions: {
+    prompt: string;
+    type: "MCQ" | "SHORT_ANSWER";
+    points: number;
+    options: { text: string; isCorrect: boolean }[];
+  }[];
+};
+
 let uidCounter = 0;
 function uid() {
   uidCounter += 1;
@@ -34,36 +53,78 @@ function emptyMcqOptions(): McqOption[] {
   ];
 }
 
+function toLocalInput(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function questionsFromInitial(initial?: ExamFormInitial): QuestionDraft[] {
+  if (!initial?.questions?.length) {
+    return [
+      {
+        id: "q-1",
+        prompt: "",
+        type: "MCQ",
+        points: 1,
+        options: emptyMcqOptions(),
+      },
+    ];
+  }
+  return initial.questions.map((q) => ({
+    id: uid(),
+    prompt: q.prompt,
+    type: q.type,
+    points: q.points,
+    options:
+      q.type === "MCQ"
+        ? q.options.length >= 2
+          ? q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect }))
+          : emptyMcqOptions()
+        : [],
+  }));
+}
+
 export function NewExamForm({
   levels,
   courses,
+  initialExam,
 }: {
   levels: Level[];
   courses: Course[];
+  initialExam?: ExamFormInitial;
 }) {
   const t = useTranslations("exam");
   const tc = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
+  const isEdit = Boolean(initialExam);
 
   const [loading, setLoading] = useState(false);
-  const [levelId, setLevelId] = useState(levels[0]?.id ?? "");
-  const [courseId, setCourseId] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [passage, setPassage] = useState("");
-  const [durationMin, setDurationMin] = useState(60);
-  const [opensAt, setOpensAt] = useState("");
-  const [closesAt, setClosesAt] = useState("");
-  const [questions, setQuestions] = useState<QuestionDraft[]>([
-    {
-      id: "q-1",
-      prompt: "",
-      type: "MCQ",
-      points: 1,
-      options: emptyMcqOptions(),
-    },
-  ]);
+  const [levelId, setLevelId] = useState(
+    initialExam?.levelId ?? levels[0]?.id ?? ""
+  );
+  const [courseId, setCourseId] = useState(initialExam?.courseId ?? "");
+  const [title, setTitle] = useState(initialExam?.title ?? "");
+  const [description, setDescription] = useState(
+    initialExam?.description ?? ""
+  );
+  const [passage, setPassage] = useState(initialExam?.passage ?? "");
+  const [durationMin, setDurationMin] = useState(
+    initialExam?.durationMin ?? 60
+  );
+  const [opensAt, setOpensAt] = useState(toLocalInput(initialExam?.opensAt ?? null));
+  const [closesAt, setClosesAt] = useState(
+    toLocalInput(initialExam?.closesAt ?? null)
+  );
+  const [questions, setQuestions] = useState<QuestionDraft[]>(() =>
+    questionsFromInitial(initialExam)
+  );
+
+  const hasAttempts = (initialExam?.attemptCount ?? 0) > 0;
+  const lockQuestions = isEdit && hasAttempts;
 
   const coursesForLevel = useMemo(
     () =>
@@ -74,6 +135,7 @@ export function NewExamForm({
   );
 
   function addQuestion(type: "MCQ" | "SHORT_ANSWER") {
+    if (lockQuestions) return;
     setQuestions((prev) => [
       ...prev,
       {
@@ -87,16 +149,19 @@ export function NewExamForm({
   }
 
   function removeQuestion(id: string) {
+    if (lockQuestions) return;
     setQuestions((prev) => prev.filter((q) => q.id !== id));
   }
 
   function updateQuestion(id: string, patch: Partial<QuestionDraft>) {
+    if (lockQuestions) return;
     setQuestions((prev) =>
       prev.map((q) => (q.id === id ? { ...q, ...patch } : q))
     );
   }
 
   function updateOption(qId: string, idx: number, patch: Partial<McqOption>) {
+    if (lockQuestions) return;
     setQuestions((prev) =>
       prev.map((q) => {
         if (q.id !== qId) return q;
@@ -130,7 +195,7 @@ export function NewExamForm({
     }
     setLoading(true);
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         levelId,
         courseId: courseId || null,
         title: title.trim(),
@@ -139,20 +204,33 @@ export function NewExamForm({
         durationMin,
         opensAt: opensAt ? new Date(opensAt).toISOString() : undefined,
         closesAt: closesAt ? new Date(closesAt).toISOString() : undefined,
-        questions: questions.map((q) => ({
+      };
+
+      if (!lockQuestions) {
+        payload.questions = questions.map((q) => ({
           prompt: q.prompt,
           type: q.type,
           points: q.points,
           options: q.type === "MCQ" ? q.options : undefined,
-        })),
-      };
+        }));
+      }
 
-      const data = await clientApi<{ exam: { id: string } }>("/api/exams", {
-        method: "POST",
-        json: payload,
-      });
-      toast.success(t("create"));
-      router.push(`/${locale}/exams/${data.exam.id}`);
+      if (isEdit && initialExam) {
+        await clientApi<{ exam: { id: string } }>(
+          `/api/exams/${initialExam.id}`,
+          { method: "PATCH", json: payload }
+        );
+        toast.success(t("updated"));
+        router.push(`/${locale}/exams/${initialExam.id}`);
+      } else {
+        const data = await clientApi<{ exam: { id: string } }>("/api/exams", {
+          method: "POST",
+          json: payload,
+        });
+        toast.success(t("create"));
+        router.push(`/${locale}/exams/${data.exam.id}`);
+      }
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error");
     } finally {
@@ -272,31 +350,39 @@ export function NewExamForm({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">{t("questions")}</h2>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn btn-secondary text-xs"
-              onClick={() => addQuestion("MCQ")}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              MCQ
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary text-xs"
-              onClick={() => addQuestion("SHORT_ANSWER")}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              {t("shortAnswer")}
-            </button>
-          </div>
+          {!lockQuestions && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-secondary text-xs"
+                onClick={() => addQuestion("MCQ")}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                MCQ
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary text-xs"
+                onClick={() => addQuestion("SHORT_ANSWER")}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t("shortAnswer")}
+              </button>
+            </div>
+          )}
         </div>
+
+        {lockQuestions && (
+          <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {t("questionsLocked")}
+          </p>
+        )}
 
         {questions.map((q, qi) => (
           <div key={q.id} className="card space-y-3 p-5">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-muted">Q{qi + 1}</span>
-              {questions.length > 1 && (
+              {!lockQuestions && questions.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeQuestion(q.id)}
@@ -312,11 +398,14 @@ export function NewExamForm({
               value={q.prompt}
               onChange={(e) => updateQuestion(q.id, { prompt: e.target.value })}
               required
+              readOnly={lockQuestions}
+              disabled={lockQuestions}
             />
             <div className="flex gap-3">
               <select
                 className="input max-w-[180px]"
                 value={q.type}
+                disabled={lockQuestions}
                 onChange={(e) =>
                   updateQuestion(q.id, {
                     type: e.target.value as "MCQ" | "SHORT_ANSWER",
@@ -332,6 +421,7 @@ export function NewExamForm({
                 min={1}
                 className="input max-w-[100px]"
                 value={q.points}
+                disabled={lockQuestions}
                 onChange={(e) =>
                   updateQuestion(q.id, { points: Number(e.target.value) })
                 }
@@ -347,12 +437,16 @@ export function NewExamForm({
                       type="radio"
                       name={`correct-${q.id}`}
                       checked={opt.isCorrect}
-                      onChange={() => updateOption(q.id, oi, { isCorrect: true })}
+                      disabled={lockQuestions}
+                      onChange={() =>
+                        updateOption(q.id, oi, { isCorrect: true })
+                      }
                     />
                     <input
                       className="input"
                       placeholder={`${t("option")} ${oi + 1}`}
                       value={opt.text}
+                      disabled={lockQuestions}
                       onChange={(e) =>
                         updateOption(q.id, oi, { text: e.target.value })
                       }
@@ -367,10 +461,18 @@ export function NewExamForm({
       </div>
 
       <div className="flex gap-3">
-        <button type="submit" className="btn btn-primary" disabled={loading || !levelId}>
-          {loading ? tc("loading") : tc("create")}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading || !levelId}
+        >
+          {loading ? tc("loading") : isEdit ? tc("save") : tc("create")}
         </button>
-        <button type="button" className="btn btn-secondary" onClick={() => router.back()}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => router.back()}
+        >
           {tc("cancel")}
         </button>
       </div>

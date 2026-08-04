@@ -44,7 +44,8 @@
     "createCourse": "Create course",
     "browse": "Browse courses",
     "levels": "Levels",
-    "students": "Students"
+    "students": "Students",
+    "videoAccess": "Video access"
   },
   "home": {
     "badge": "Instructor learning platform",
@@ -112,6 +113,17 @@
     "unblocked": "Student unblocked",
     "confirmReject": "Reject and delete this registration?",
     "confirmBlock": "Block this student from accessing the platform?"
+  },
+  "videoAccess": {
+    "title": "Suspicious video access",
+    "subtitle": "Students flagged for requesting lesson videos from 3 or more IP addresses within 10 minutes. Review these for possible account sharing.",
+    "empty": "No suspicious access patterns yet.",
+    "refresh": "Refresh",
+    "colStudent": "Student",
+    "colCourse": "Course",
+    "colLesson": "Lesson",
+    "colIp": "IP",
+    "colTime": "Time"
   },
   "levels": {
     "title": "Levels",
@@ -203,7 +215,10 @@
     "completed": "Completed",
     "resume": "Resume",
     "transcript": "Full transcript",
-    "courseInfo": "Course information"
+    "courseInfo": "Course information",
+    "processing": "Video is still processing for adaptive streaming. Try again shortly.",
+    "quality": "Quality",
+    "qualityAuto": "Auto"
   },
   "quiz": {
     "title": "Quiz",
@@ -255,7 +270,12 @@
     "questionPrompt": "Question prompt",
     "multipleChoice": "Multiple choice",
     "option": "Option",
-    "details": "Details"
+    "details": "Details",
+    "edit": "Edit exam",
+    "updated": "Exam updated",
+    "questionsLocked": "Questions cannot be changed because students have already attempted this exam. You can still update title, schedule, and other details.",
+    "attempts": "Student attempts",
+    "noAttempts": "No students have attempted this exam yet."
   },
   "notifications": {
     "title": "Notifications",
